@@ -1,27 +1,25 @@
 from picamera2 import Picamera2
 import time
 import cv2
-#import torch
 from complexmove import MoveStepper, MoveServo, CleanupGPIO, ServoSetDutyCycleDirect
 #./complexmove
-#PID = D
 """
 //dev
 how do we pick a target before knowing who is which target?
-fixing servo jitter on y axis, currently disabled
+the driving of the motors needs to be more scientifically optimised
+lighting and sides?
 """
 
 resXmax = 640
 resYmax = 360 
+haarCascadePath = './haarcascade_frontalface_default.xml'
 
 camera = Picamera2()
 camera.configure(camera.create_preview_configuration(main={"format": 'XRGB8888', "size": (resXmax,resYmax)}))
 #camera.framerate(30)
 camera.start()
 
-# Load YOLOv5 model
-#model = torch.hub.load('ultralytics/yolov5', 'yolov5n')
-faceCascade = cv2.CascadeClassifier('/home/burhan/Documents/python_scripts/tired/haarcascade_frontalface_default.xml')
+faceCascade = cv2.CascadeClassifier(haarCascadePath)
 
 x_AxisDeadZone = resXmax * 0.05
 y_AxisDeadZone = resYmax * 0.05
@@ -78,17 +76,6 @@ while True:
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = frame[y:y+h, x:x+w]
         move(x,y,w,h)
-
-
-    #results = model(frame)
-
-    # Draw bounding boxes
-	#for result in results.xyxy[0]:
-    #    x1, y1, x2, y2, conf, cls = result
-     #   if cls == 0:  # Class 0 is 'person' in COCO dataset
-      #      cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-       #     followx = x1
-        #    followy = y1
 
     # Display the resulting frame
     cv2.imshow('Face Detection', frame)

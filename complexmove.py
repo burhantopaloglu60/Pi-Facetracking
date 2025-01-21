@@ -1,34 +1,26 @@
 from time import sleep
 import RPi.GPIO as GPIO
 
-GPIO.setwarnings(False)
-
 # We name all the pins on BCM mode, use them as their GPIO number and NOT PIN number
 GPIO.setmode(GPIO.BCM)
 
 SERVO = 17 # Servo GPIO pin
-DIR = 22   # Direction GPIO Pin
-STEP = 27  # Step GPIO Pin
-EN = 14 # Enable GPIO Pin
+ENABLE = 27   # ENABLE (pwm/step)
+PHASE = 22 # PHASE
 
-CW = 0     # Clockwise Rotation
-CCW = 1    # Counterclockwise Rotation
+CW = GPIO.LOW  # Clockwise Rotation
+CCW = GPIO.HIGH    # Counterclockwise Rotation
 SPR = 200   # Steps per Revolution as stated on datasheet of the Joy-it Nema 17-03
 
 GPIO.setup(SERVO, GPIO.OUT)
-GPIO.setup(DIR, GPIO.OUT)
-GPIO.setup(STEP, GPIO.OUT)
-GPIO.setup(EN, GPIO.OUT)
-GPIO.output(DIR, CW)
-GPIO.output(EN, GPIO.LOW)
+GPIO.setup(ENABLE, GPIO.OUT)
+GPIO.setup(PHASE, GPIO.OUT)
+GPIO.output(PHASE, CW)
 
 step_count = SPR
-Fastest = .0001
-FAST = .001
-MEM = .002
-SLOW = .01
-CRUISE = .0208
-stepperDelay = MEM
+stepperDelay = .00003
+xstepper=GPIO.PWM(ENABLE, 20000) #20 kHz, datasheet states 0 - 250 kHz
+xstepper.start(15) 
 
 servoMovementDeadZone = 1
 servoMin = 20
@@ -36,21 +28,26 @@ servoMax = 80
 currentY = 35
 yservo=GPIO.PWM(SERVO, 330) #330hz as per servo datasheet
 yservo.start(currentY) #20-80
-sleep(0.5)
+sleep(0.3)
 yservo.ChangeDutyCycle(0)
+xstepper.ChangeDutyCycle(0)
 
 def CleanupGPIO():
 	yservo.stop()
-	GPIO.output(EN, GPIO.HIGH)
 	GPIO.cleanup()
 	
 def MoveStepper(myDIR, mySTEPS):
-	GPIO.output(DIR, myDIR)
-	for x in range(int(mySTEPS)):
-                GPIO.output(STEP, GPIO.HIGH)
-                sleep(stepperDelay)
-                GPIO.output(STEP, GPIO.LOW)
-                sleep(stepperDelay)
+	direction = CCW # input 0 for CCW, 1 for CW
+	if(myDIR == 1):
+	    direction = CW
+	GPIO.output(PHASE, direction)
+	
+	xstepper.ChangeDutyCycle(15)
+	sleep(stepperDelay * mySTEPS) #delay longer with more steps
+	
+	GPIO.output(ENABLE, GPIO.LOW)
+	xstepper.ChangeDutyCycle(0)
+	
 
 def ServoSetDutyCycleDirect(dcy):
     yservo.ChangeDutyCycle(dcy)
